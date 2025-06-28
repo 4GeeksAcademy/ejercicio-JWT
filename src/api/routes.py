@@ -16,22 +16,46 @@ bcrypt = Bcrypt(app)
 CORS(api)
 
 
-@api.route("/register", methods=["POST"])
-def register_user():
+@api.route("/signup", methods=["POST"])
+def signup_user():
     # Tomar el cuerpo de la peticion
     body = request.get_json()
-    # Creamos el usuario sin clave
+    if body is None:
+                return jsonify({"Error": "ody Not Provided"}), 400
+    
+    name = body.get("name", None)
+    last_name = body.get("last_name", None)
+    email = body.get("email", None)
+    password = body.get("password", None)
+    if not email or not password:
+        return jsonify({"Error": "Email and Password are required"}), 400
+    if "@" not in email or "." not in email:
+        return jsonify({"Error": "Invalid email format"}), 400
+    if len(password) < 8:
+        return jsonify({"Error": "Password must be at least 8 characters long"}), 400
+    
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({"Msg": "This user already exists. Please go to login."}), 409
+
     # Primero se encripta la clave
-    hashed_password = bcrypt.generate_password_hash(
-        body["password"]).decode("utf-8")
+    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        # Create new user with the data obtained
+    new_user = User(
+        name=name,
+        last_name=last_name,
+        email=email,
+        password=hashed_password,
+        is_active=True)
+  
     # Se agrega la clave encriptada al usuario que se va a crear
     # Se guarda el nuevo usuario en la base de datos
-    new_user = User(email=body["email"], fullname=body["fullname"],
-                    password=hashed_password, is_active=True)
     db.session.add(new_user)
     db.session.commit()
     # Se responde con los datos del usuario creado
-    return jsonify(new_user.serialize()), 201
+    return jsonify({"msg": "New user created",
+                    "user": new_user.serialize()
+                    }), 201
 
 
 @api.route("/login", methods=["POST"])
@@ -59,7 +83,7 @@ def login_user():
     return jsonify({"token": token}), 200
 
 
-@api.route("/userinfo", methods=["GET"])
+@api.route("/userinfo", methods=["POST"])
 @jwt_required()  # Se agrega el decorador para que la ruta sea protegida
 def user_info():
     # Como es una ruta que solo se puede acceder con un token valido

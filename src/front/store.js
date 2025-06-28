@@ -1,3 +1,5 @@
+
+
 export const initialStore=()=>{
   return{
     message: null,
@@ -12,12 +14,20 @@ export const initialStore=()=>{
         title: "Do my homework",
         background: null,
       }
-    ]
+    ],
+    signup:[],
   }
 }
 
 export default function storeReducer(store, action = {}) {
   switch(action.type){
+    case "signup":
+      return {
+        ...store,
+        signup: [...store.signup, action.payload],
+      };
+
+
     case 'set_hello':
       return {
         ...store,
